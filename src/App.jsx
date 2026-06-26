@@ -66,14 +66,14 @@ function getExcelValue(row, headers, colName) {
 
 const PDF_FIELDS = [
   // ===== PAGE 0 (Autorización) =====
-  { key: 'nombreDoc_p1', label: 'Nombres y Apellidos', page: 0, x: 790, y: 123, size: 10, w: 300, editable: false },
-  { key: 'numDoc_p1', label: 'Número de Documento', page: 0, x: 790, y: 100, size: 10, w: 200, editable: false },
+  { key: 'nombreDoc_p1', label: 'Nombres y Apellidos', page: 0, x: 790, y: 123, size: 16, w: 300, editable: false },
+  { key: 'numDoc_p1', label: 'Número de Documento', page: 0, x: 790, y: 100, size: 16, w: 200, editable: false },
 
   // ===== PAGE 1 (Formulario principal) =====
-  { key: 'nit', label: 'N° de NIT', page: 1, x: 30, y: 881, size: 9, w: 120, editable: true, default: 'N/A' },
-  { key: 'razonSocial', label: 'Razón Social Entidad Patrocinadora', page: 1, x: 212, y: 881, size: 8, w: 210, editable: true, default: 'N/A' },
-  { key: 'numDocumento', label: 'N° de Documento de Identidad', page: 1, x: 230, y: 829, size: 10, w: 160, editable: false, col: 'CEDULA' },
-  { key: 'fechaExpedicion', label: 'Fecha de Expedición', page: 1, type: 'dateDigits', y: 831, size: 9, editable: true, default: '',
+  { key: 'nit', label: 'N° de NIT', page: 1, x: 30, y: 880, size: 12, w: 120, editable: true, default: 'N/A' },
+  { key: 'razonSocial', label: 'Razón Social Entidad Patrocinadora', page: 1, x: 212, y: 880, size: 11, w: 210, editable: true, default: 'N/A' },
+  { key: 'numDocumento', label: 'N° de Documento de Identidad', page: 1, x: 230, y: 829, size: 13, w: 160, editable: false, col: 'CEDULA' },
+  { key: 'fechaExpedicion', label: 'Fecha de Expedición', page: 1, type: 'dateDigits', y: 831, size: 11, editable: true, default: '',
     digitPositions: [
       { x: 392 },  // Año d1
       { x: 405 },  // Año d2
@@ -85,7 +85,7 @@ const PDF_FIELDS = [
       { x: 479 },  // Día d2
     ],
   },
-  { key: 'lugarExpedicion', label: 'Lugar de Expedición', page: 1, x: 507, y: 830, size: 9, w: 150, editable: false, col: 'CIUDAD EXPEDICION' },
+  { key: 'lugarExpedicion', label: 'Lugar de Expedición', page: 1, x: 507, y: 830, size: 11, w: 150, editable: false, col: 'CIUDAD EXPEDICION' },
   { key: 'primerApellido', label: 'Primer Apellido', page: 1, x: 27, y: 802, size: 10, w: 100, editable: false, col: 'APELLIDOS_first' },
   { key: 'otrosApellidos', label: 'Otros Apellidos', page: 1, x: 172, y: 802, size: 10, w: 100, editable: false, col: 'APELLIDOS_rest' },
   { key: 'primerNombre', label: 'Primer Nombre', page: 1, x: 317, y: 802, size: 10, w: 100, editable: false, col: 'NOMBRES_first' },
@@ -104,19 +104,19 @@ const PDF_FIELDS = [
       { x: 568 },  // Día d2
     ],
   },
-  { key: 'cargo', label: 'Cargo / Ocupación u Oficio', page: 1, x: 37, y: 738, size: 9, w: 180, editable: false, col: 'OFICIO' },
-  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 9, w: 130, editable: true, default: 'N/A' },
-  { key: 'direccion', label: 'Dirección de Residencia', page: 1, x: 130, y: 654, size: 8, w: 260, editable: false, col: 'DIRECCION' },
-  { key: 'ciudad', label: 'Ciudad / Municipio', page: 1, x: 440, y: 654, size: 9, w: 140, editable: false, col: 'CIUDAD' },
-  { key: 'departamento', label: 'Departamento', page: 1, x: 90, y: 625, size: 9, w: 120, editable: true, default: 'N/A' },
-  { key: 'telefono', label: 'Teléfono Celular', page: 1, x: 500, y: 625, size: 9, w: 130, editable: false, col: 'TELEFONO CELULAR' },
-  { key: 'email', label: 'Correo Electrónico', page: 1, x: 172, y: 596, size: 8, w: 280, editable: false, col: 'CORREO ELECTRONICO' },
-  { key: 'numCuenta', label: 'Número de Cuenta', page: 1, x: 90, y: 319, size: 9, w: 160, editable: false, col: 'CTA. No.' },
-  { key: 'nombreBanco', label: 'Nombre del Banco', page: 1, x: 280, y: 319, size: 9, w: 200, editable: false, col: 'BANCO' },
+  { key: 'cargo', label: 'Cargo / Ocupación u Oficio', page: 1, x: 37, y: 738, size: 12, w: 180, editable: false, col: 'OFICIO' },
+  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 11, w: 130, editable: true, default: 'N/A' },
+  { key: 'direccion', label: 'Dirección de Residencia', page: 1, x: 42, y: 654, size: 11, w: 260, editable: false, col: 'DIRECCION' },
+  { key: 'ciudad', label: 'Ciudad / Municipio', page: 1, x: 380, y: 654, size: 12, w: 140, editable: false, col: 'CIUDAD' },
+  { key: 'departamento', label: 'Departamento', page: 1, x: 40, y: 625, size: 12, w: 120, editable: true, default: 'N/A' },
+  { key: 'telefono', label: 'Teléfono Celular', page: 1, x: 440, y: 625, size: 12, w: 130, editable: false, col: 'TELEFONO CELULAR' },
+  { key: 'email', label: 'Correo Electrónico', page: 1, x: 42, y: 597, size: 14, w: 280, editable: false, col: 'CORREO ELECTRONICO' },
+  { key: 'numCuenta', label: 'Número de Cuenta', page: 1, x: 30, y: 319, size: 12, w: 160, editable: false, col: 'CTA. No.' },
+  { key: 'nombreBanco', label: 'Nombre del Banco', page: 1, x: 210, y: 319, size: 12, w: 200, editable: false, col: 'BANCO' },
 
   // ===== PAGE 2 (Firmas y constancia) =====
   { key: 'nombreFirma_p3', label: 'Nombres y Apellidos (14. Firma)', page: 2, x: 641, y: 561, size: 8, w: 300, editable: false },
-  { key: 'docFirma_p3', label: 'N° Documento Identidad (14. Firma)', page: 2, x: 641, y: 533, size: 8, w: 200, editable: false, col: 'CEDULA' },
+  { key: 'docFirma_p3', label: 'N° Documento Identidad (14. Firma)', page: 2, x: 641, y: 533, size: 11, w: 200, editable: false, col: 'CEDULA' },
 ]
 
 const STATIC_FIELDS = PDF_FIELDS.filter(f => f.editable)
