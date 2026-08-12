@@ -8,25 +8,94 @@ const MESES_ESP = {
   'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
 }
 
+function excelSerialToDate(serial) {
+  const ms = (serial - 25569) * 86400 * 1000
+  const d = new Date(ms)
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+function formatDateYMD(d) {
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+}
+
 function parseFechaColombia(str) {
-  if (!str) return ''
-  const cleaned = String(str).trim().replace(/\s+/g, '-')
-  const parts = cleaned.split('-')
+  if (str === null || str === undefined || str === '') return ''
+
+  if (str instanceof Date) {
+    return isNaN(str.getTime()) ? '' : formatDateYMD(str)
+  }
+
+  if (typeof str === 'number') {
+    if (str > 1000 && str < 80000) return formatDateYMD(excelSerialToDate(str))
+    return ''
+  }
+
+  const s = String(str).trim()
+  if (!s) return ''
+
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const serial = parseFloat(s)
+    if (serial > 1000 && serial < 80000) return formatDateYMD(excelSerialToDate(serial))
+    return ''
+  }
+
+  const normalized = s
+    .replace(/\s+de\s+/gi, ' ')
+    .replace(/[\/\-\.]/g, '-')
+    .replace(/\s+/g, '-')
+
+  const parts = normalized.split('-').filter(Boolean)
   if (parts.length === 3) {
-    const dia = parseInt(parts[0], 10)
-    const mesStr = parts[1].toLowerCase()
-    const anio = parseInt(parts[2], 10)
-    if (!isNaN(dia) && MESES_ESP[mesStr] !== undefined && !isNaN(anio)) {
-      const mes = MESES_ESP[mesStr]
+    let dia, mes, anio
+    const p0 = parseInt(parts[0], 10)
+    const p1 = parseInt(parts[1], 10)
+    const p2 = parseInt(parts[2], 10)
+    const mes1 = MESES_ESP[parts[1].toLowerCase()]
+
+    if (!isNaN(p0) && mes1 !== undefined && !isNaN(p2)) {
+      dia = p0
+      mes = mes1
+      anio = p2
+    } else if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
+      if (p0 > 1900 && p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+        anio = p0; mes = p1 - 1; dia = p2
+      } else if (p0 >= 1 && p0 <= 31 && p1 >= 1 && p1 <= 12 && p2 > 1900) {
+        dia = p0; mes = p1 - 1; anio = p2
+      } else if (p0 >= 1 && p0 <= 12 && p1 >= 1 && p1 <= 31 && p2 > 1900) {
+        mes = p0 - 1; dia = p1; anio = p2
+      }
+    }
+
+    if (dia !== undefined && mes !== undefined && anio !== undefined && !isNaN(dia) && !isNaN(mes) && !isNaN(anio)) {
       const fullYear = anio < 100 ? (anio > 50 ? 1900 + anio : 2000 + anio) : anio
-      return `${fullYear}/${String(mes + 1).padStart(2, '0')}/${String(dia).padStart(2, '0')}`
+      if (dia >= 1 && dia <= 31 && mes >= 0 && mes <= 11 && fullYear > 1900 && fullYear < 2100) {
+        return `${fullYear}/${String(mes + 1).padStart(2, '0')}/${String(dia).padStart(2, '0')}`
+      }
     }
   }
-  const d = new Date(str)
-  if (!isNaN(d.getTime())) {
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+
+  const textParts = s.split(/\s+/).filter(Boolean)
+  if (textParts.length >= 3) {
+    const dia = parseInt(textParts[0], 10)
+    let mes = -1
+    let anio = NaN
+    for (const p of textParts) {
+      const lower = p.toLowerCase().replace(/[,\.]/g, '')
+      if (MESES_ESP[lower] !== undefined) mes = MESES_ESP[lower]
+      else if (/^\d{2,4}$/.test(p)) anio = parseInt(p, 10)
+    }
+    if (!isNaN(dia) && mes >= 0 && !isNaN(anio)) {
+      const fullYear = anio < 100 ? (anio > 50 ? 1900 + anio : 2000 + anio) : anio
+      if (fullYear > 1900 && fullYear < 2100) {
+        return `${fullYear}/${String(mes + 1).padStart(2, '0')}/${String(dia).padStart(2, '0')}`
+      }
+    }
   }
-  return String(str).trim()
+
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) return formatDateYMD(d)
+
+  return s
 }
 
 function splitName(str) {
@@ -143,7 +212,7 @@ function App() {
   const [pdfReady, setPdfReady] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
   const [generatingAll, setGeneratingAll] = useState(false)
-  const [allPdfUrl, setAllPdfUrl] = useState(null)
+  const [allPdfs, setAllPdfs] = useState([])
   const fileInputRef = useRef(null)
 
   const processExcel = useCallback((file) => {
@@ -308,8 +377,10 @@ function App() {
     setGeneratingAll(true)
     try {
       const pdfBytes = await fetch('/Archivo final.pdf').then(r => r.arrayBuffer())
-      const mergedPdf = await PDFDocument.create()
 
+      allPdfs.forEach(p => URL.revokeObjectURL(p.url))
+
+      const results = []
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
         const pdfDoc = await PDFDocument.load(pdfBytes)
@@ -319,22 +390,20 @@ function App() {
         fillPdfPages(pages, font, row)
 
         const singlePdfBytes = await pdfDoc.save()
-        const singleDoc = await PDFDocument.load(singlePdfBytes)
-        const singlePages = await mergedPdf.copyPages(singleDoc, singleDoc.getPageIndices())
-        singlePages.forEach(p => mergedPdf.addPage(p))
+        const blob = new Blob([singlePdfBytes], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const fullName = getFullName(row, headers) || `Empleado_${i + 1}`
+        const safeName = fullName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_') || `Empleado_${i + 1}`
+        results.push({ name: `${safeName}_formulario_pension.pdf`, url, fullName })
       }
 
-      const mergedBytes = await mergedPdf.save()
-      const blob = new Blob([mergedBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      if (allPdfUrl) URL.revokeObjectURL(allPdfUrl)
-      setAllPdfUrl(url)
+      setAllPdfs(results)
     } catch (err) {
       console.error(err)
       alert('Error al generar PDFs: ' + err.message)
     }
     setGeneratingAll(false)
-  }, [excelData, rows, fillPdfPages, allPdfUrl])
+  }, [excelData, rows, fillPdfPages, headers, allPdfs])
 
   const downloadPdf = () => {
     if (pdfUrl) {
@@ -347,12 +416,17 @@ function App() {
   }
 
   const downloadAllPdf = () => {
-    if (allPdfUrl) {
-      const a = document.createElement('a')
-      a.href = allPdfUrl
-      a.download = 'todos_formularios_pension.pdf'
-      a.click()
-    }
+    if (allPdfs.length === 0) return
+    allPdfs.forEach((pdf, i) => {
+      setTimeout(() => {
+        const a = document.createElement('a')
+        a.href = pdf.url
+        a.download = pdf.name
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }, i * 200)
+    })
   }
 
   return (
@@ -681,14 +755,14 @@ function App() {
                         Descargar PDF Individual
                       </button>
                     )}
-                    {allPdfUrl && (
+                    {allPdfs.length > 0 && (
                       <button className="btn-success" onClick={downloadAllPdf}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                           <polyline points="7 10 12 15 17 10"/>
                           <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
-                        Descargar Todos los PDF
+                        Descargar Todos los PDF ({allPdfs.length})
                       </button>
                     )}
                   </div>
