@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import './App.css'
@@ -142,7 +142,7 @@ const PDF_FIELDS = [
   { key: 'nit', label: 'N° de NIT', page: 1, x: 30, y: 880, size: 12, w: 120, editable: true, default: 'N/A' },
   { key: 'razonSocial', label: 'Razón Social Entidad Patrocinadora', page: 1, x: 212, y: 880, size: 11, w: 210, editable: true, default: 'N/A' },
   { key: 'numDocumento', label: 'N° de Documento de Identidad', page: 1, x: 230, y: 829, size: 13, w: 160, editable: false, col: 'CEDULA' },
-  { key: 'fechaExpedicion', label: 'Fecha de Expedición', page: 1, type: 'dateDigits', y: 831, size: 11, editable: true, default: '',
+  { key: 'fechaExpedicion', label: 'Fecha de Expedición', page: 1, type: 'dateDigits', y: 831, size: 11, editable: false, col: 'FECHA DE EXPEDICION_date',
     digitPositions: [
       { x: 392 },  // Año d1
       { x: 405 },  // Año d2
@@ -159,7 +159,7 @@ const PDF_FIELDS = [
   { key: 'otrosApellidos', label: 'Otros Apellidos', page: 1, x: 172, y: 802, size: 10, w: 100, editable: false, col: 'APELLIDOS_rest' },
   { key: 'primerNombre', label: 'Primer Nombre', page: 1, x: 317, y: 802, size: 10, w: 100, editable: false, col: 'NOMBRES_first' },
   { key: 'otrosNombres', label: 'Otros Nombres', page: 1, x: 462, y: 802, size: 10, w: 100, editable: false, col: 'NOMBRES_rest' },
-  { key: 'genero', label: 'Género', page: 1, type: 'gender', editable: true, default: '' },
+  { key: 'genero', label: 'Género', page: 1, type: 'gender', editable: false, col: 'GENERO' },
   { key: 'lugarNacimiento', label: 'Lugar de Nacimiento', page: 1, x: 317, y: 774, size: 10, w: 160, editable: false, col: 'CIUDAD NACIMIENTO' },
   { key: 'fechaNacimiento', label: 'Fecha de Nacimiento', page: 1, type: 'dateDigits', y: 776, size: 10, editable: false, col: 'FECHA NACIMIENTO_date',
     digitPositions: [
@@ -174,10 +174,10 @@ const PDF_FIELDS = [
     ],
   },
   { key: 'cargo', label: 'Cargo / Ocupación u Oficio', page: 1, x: 37, y: 738, size: 12, w: 180, editable: false, col: 'OFICIO' },
-  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 11, w: 130, editable: true, default: 'N/A' },
+  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 11, w: 130, editable: false, col: 'PROFESION' },
   { key: 'direccion', label: 'Dirección de Residencia', page: 1, x: 42, y: 654, size: 11, w: 260, editable: false, col: 'DIRECCION' },
   { key: 'ciudad', label: 'Ciudad / Municipio', page: 1, x: 380, y: 654, size: 12, w: 140, editable: false, col: 'CIUDAD' },
-  { key: 'departamento', label: 'Departamento', page: 1, x: 40, y: 625, size: 12, w: 120, editable: true, default: 'N/A' },
+  { key: 'departamento', label: 'Departamento', page: 1, x: 40, y: 625, size: 12, w: 120, editable: false, col: 'DEPARTAMENTO' },
   { key: 'telefono', label: 'Teléfono Celular', page: 1, x: 440, y: 625, size: 12, w: 130, editable: false, col: 'TELEFONO CELULAR' },
   { key: 'email', label: 'Correo Electrónico', page: 1, x: 42, y: 597, size: 14, w: 280, editable: false, col: 'CORREO ELECTRONICO' },
   { key: 'numCuenta', label: 'Número de Cuenta', page: 1, x: 30, y: 319, size: 12, w: 160, editable: false, col: 'CTA. No.' },
@@ -213,6 +213,8 @@ function App() {
   const [pdfUrl, setPdfUrl] = useState(null)
   const [generatingAll, setGeneratingAll] = useState(false)
   const [allPdfs, setAllPdfs] = useState([])
+  const [razonesSociales, setRazonesSociales] = useState([])
+  const [selectedRazon, setSelectedRazon] = useState('TODAS')
   const fileInputRef = useRef(null)
 
   const processExcel = useCallback((file) => {
@@ -252,6 +254,19 @@ function App() {
         })
         setFieldMapping(initialMapping)
         setFieldOverrides(initialOverrides)
+
+        const razonIdx = hdrs.findIndex(h => h && String(h).trim().toUpperCase() === 'RAZON SOCIAL')
+        const nitIdx = hdrs.findIndex(h => h && String(h).trim().toUpperCase() === 'NIT')
+        const pairsMap = new Map()
+        dataRows.forEach(row => {
+          const razon = razonIdx >= 0 ? formatExcelValue(row[razonIdx]) : ''
+          const nit = nitIdx >= 0 ? formatExcelValue(row[nitIdx]) : ''
+          if (razon && !pairsMap.has(razon)) pairsMap.set(razon, nit)
+        })
+        const uniques = Array.from(pairsMap, ([razon, nit]) => ({ razon, nit }))
+        setRazonesSociales(uniques)
+        setSelectedRazon('TODAS')
+
         setSelectedRow(0)
       } catch (err) {
         console.error(err)
@@ -262,6 +277,27 @@ function App() {
   }, [])
 
   const handleDrag = useCallback((e) => { e.preventDefault(); e.stopPropagation() }, [])
+
+  useEffect(() => {
+    if (selectedRazon === 'TODAS') return
+    const rs = razonesSociales.find(r => r.razon === selectedRazon)
+    if (rs) {
+      setStaticValues(prev => ({
+        ...prev,
+        nit: rs.nit || prev.nit || 'N/A',
+        razonSocial: rs.razon
+      }))
+    }
+  }, [selectedRazon, razonesSociales])
+
+  const filteredRows = useMemo(() => {
+    const list = rows.map((row, idx) => ({ row, idx }))
+    if (selectedRazon === 'TODAS') return list
+    const razonIdx = headers.findIndex(h => h && String(h).trim().toUpperCase() === 'RAZON SOCIAL')
+    if (razonIdx < 0) return list
+    return list.filter(({ row }) => formatExcelValue(row[razonIdx]) === selectedRazon)
+  }, [rows, selectedRazon, headers])
+
   const handleDragIn = useCallback((e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true) }, [])
   const handleDragOut = useCallback((e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false) }, [])
   const handleDrop = useCallback((e) => {
@@ -303,11 +339,13 @@ function App() {
   const fillPdfPages = useCallback((pages, font, row) => {
     for (const field of PDF_FIELDS) {
       if (field.type === 'gender') {
-        const val = staticValues[field.key] || ''
+        const raw = getFieldValue(field, row)
+        const val = String(raw || '').toUpperCase().trim()
         if (!val) continue
         const page = pages[field.page]
         if (!page) continue
-        const x = val === 'M' ? 64 : 36
+        const isMale = val === 'M' || val === 'MASCULINO' || val === 'HOMBRE' || val === 'H'
+        const x = isMale ? 64 : 36
         const y = 776
         page.drawText('X', { x, y, size: 10, font, color: rgb(0, 0, 0) })
         continue
@@ -380,9 +418,10 @@ function App() {
 
       allPdfs.forEach(p => URL.revokeObjectURL(p.url))
 
+      const targets = filteredRows.map(f => f.row)
       const results = []
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i]
+      for (let i = 0; i < targets.length; i++) {
+        const row = targets[i]
         const pdfDoc = await PDFDocument.load(pdfBytes)
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
         const pages = pdfDoc.getPages()
@@ -394,7 +433,10 @@ function App() {
         const url = URL.createObjectURL(blob)
         const fullName = getFullName(row, headers) || `Empleado_${i + 1}`
         const safeName = fullName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_') || `Empleado_${i + 1}`
-        results.push({ name: `${safeName}_formulario_pension.pdf`, url, fullName })
+        const prefijo = selectedRazon !== 'TODAS'
+          ? `${safeName}_${razonesSociales.find(r => r.razon === selectedRazon)?.nit || 'PDF'}`
+          : safeName
+        results.push({ name: `${prefijo}_formulario_pension.pdf`, url, fullName })
       }
 
       setAllPdfs(results)
@@ -403,7 +445,7 @@ function App() {
       alert('Error al generar PDFs: ' + err.message)
     }
     setGeneratingAll(false)
-  }, [excelData, rows, fillPdfPages, headers, allPdfs])
+  }, [excelData, rows, fillPdfPages, headers, allPdfs, filteredRows, selectedRazon, razonesSociales])
 
   const downloadPdf = () => {
     if (pdfUrl) {
@@ -625,8 +667,34 @@ function App() {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
                       </svg>
-                      Datos Cargados ({rows.length} empleados) — Seleccioná uno para generar su PDF
+                      Datos Cargados ({filteredRows.length} de {rows.length} empleados) — Seleccioná uno para generar su PDF
                     </label>
+
+                    {razonesSociales.length > 1 && (
+                      <div className="manual-field-item" style={{ maxWidth: '420px' }}>
+                        <label className="manual-field-label">
+                          Filtrar por Razón Social
+                          {selectedRazon !== 'TODAS' && razonesSociales.find(r => r.razon === selectedRazon) && (
+                            <span style={{ marginLeft: '0.5rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                              (NIT: {razonesSociales.find(r => r.razon === selectedRazon).nit || 'N/A'})
+                            </span>
+                          )}
+                        </label>
+                        <select
+                          className="select-input"
+                          value={selectedRazon}
+                          onChange={(e) => setSelectedRazon(e.target.value)}
+                        >
+                          <option value="TODAS">Todas ({rows.length})</option>
+                          {razonesSociales.map((rs, i) => (
+                            <option key={i} value={rs.razon}>
+                              {rs.razon}{rs.nit ? ` — NIT: ${rs.nit}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className="table-wrapper">
                       <table className="data-table">
                         <thead>
@@ -636,10 +704,11 @@ function App() {
                             <th>Cédula</th>
                             <th>Cargo</th>
                             <th>Ciudad</th>
+                            <th>Razón Social</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {rows.map((row, i) => (
+                          {filteredRows.map(({ row, idx: i }) => (
                             <tr
                               key={i}
                               className={selectedRow === i ? 'selected-row' : ''}
@@ -650,6 +719,7 @@ function App() {
                               <td>{getExcelValue(row, headers, 'CEDULA') || '-'}</td>
                               <td>{getExcelValue(row, headers, 'OFICIO') || '-'}</td>
                               <td>{getExcelValue(row, headers, 'CIUDAD') || '-'}</td>
+                              <td>{getExcelValue(row, headers, 'RAZON SOCIAL') || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -743,7 +813,7 @@ function App() {
                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                         <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
                       </svg>
-                      {generatingAll ? 'Generando todos...' : `Generar Todos (${rows.length})`}
+                      {generatingAll ? 'Generando todos...' : `Generar Todos (${filteredRows.length})`}
                     </button>
                     {pdfReady && pdfUrl && (
                       <button className="btn-success" onClick={downloadPdf}>
