@@ -154,7 +154,7 @@ const PDF_FIELDS = [
       { x: 479 },  // Día d2
     ],
   },
-  { key: 'lugarExpedicion', label: 'Lugar de Expedición', page: 1, x: 507, y: 830, size: 11, w: 150, editable: false, col: 'CIUDAD EXPEDICION' },
+  { key: 'lugarExpedicion', label: 'Lugar de Expedición', page: 1, x: 498, y: 831, size: 9, w: 150, editable: false, col: 'CIUDAD EXPEDICION' },
   { key: 'primerApellido', label: 'Primer Apellido', page: 1, x: 27, y: 802, size: 10, w: 100, editable: false, col: 'APELLIDOS_first' },
   { key: 'otrosApellidos', label: 'Otros Apellidos', page: 1, x: 172, y: 802, size: 10, w: 100, editable: false, col: 'APELLIDOS_rest' },
   { key: 'primerNombre', label: 'Primer Nombre', page: 1, x: 317, y: 802, size: 10, w: 100, editable: false, col: 'NOMBRES_first' },
@@ -173,8 +173,8 @@ const PDF_FIELDS = [
       { x: 568 },  // Día d2
     ],
   },
-  { key: 'cargo', label: 'Cargo / Ocupación u Oficio', page: 1, x: 37, y: 738, size: 12, w: 180, editable: false, col: 'OFICIO' },
-  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 11, w: 130, editable: false, col: 'PROFESION' },
+  { key: 'cargo', label: 'Cargo / Ocupación u Oficio', page: 1, x: 37, y: 738, size: 12, w: 250, editable: false, col: 'OFICIO' },
+  { key: 'profesion', label: 'Profesión', page: 1, x: 323, y: 739, size: 11, w: 200, editable: false, col: 'PROFESION' },
   { key: 'direccion', label: 'Dirección de Residencia', page: 1, x: 42, y: 654, size: 11, w: 260, editable: false, col: 'DIRECCION' },
   { key: 'ciudad', label: 'Ciudad / Municipio', page: 1, x: 380, y: 654, size: 12, w: 140, editable: false, col: 'CIUDAD' },
   { key: 'departamento', label: 'Departamento', page: 1, x: 40, y: 625, size: 12, w: 120, editable: false, col: 'DEPARTAMENTO' },
@@ -265,7 +265,7 @@ function App() {
         })
         const uniques = Array.from(pairsMap, ([razon, nit]) => ({ razon, nit }))
         setRazonesSociales(uniques)
-        setSelectedRazon('TODAS')
+        setSelectedRazon(uniques.length === 1 ? uniques[0].razon : 'TODAS')
 
         setSelectedRow(0)
       } catch (err) {
