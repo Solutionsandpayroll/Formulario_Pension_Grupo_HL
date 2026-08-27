@@ -208,6 +208,7 @@ function App() {
   const [staticValues, setStaticValues] = useState({})
   const [fieldMapping, setFieldMapping] = useState({})
   const [fieldOverrides, setFieldOverrides] = useState({})
+  const [fieldCustomizations, setFieldCustomizations] = useState({})
   const [loading, setLoading] = useState(false)
   const [pdfReady, setPdfReady] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
@@ -254,6 +255,12 @@ function App() {
         })
         setFieldMapping(initialMapping)
         setFieldOverrides(initialOverrides)
+
+        const initialCustomizations = {}
+        PDF_FIELDS.forEach(f => {
+          initialCustomizations[f.key] = { size: f.size || 12, xPos: f.x || 0 }
+        })
+        setFieldCustomizations(initialCustomizations)
 
         const razonIdx = hdrs.findIndex(h => h && String(h).trim().toUpperCase() === 'RAZON SOCIAL')
         const nitIdx = hdrs.findIndex(h => h && String(h).trim().toUpperCase() === 'NIT')
@@ -338,6 +345,10 @@ function App() {
 
   const fillPdfPages = useCallback((pages, font, row) => {
     for (const field of PDF_FIELDS) {
+      const custom = fieldCustomizations[field.key] || {}
+      const customSize = custom.size || field.size
+      const xPos = custom.xPos !== undefined ? custom.xPos : field.x
+
       if (field.type === 'gender') {
         const raw = getFieldValue(field, row)
         const val = String(raw || '').toUpperCase().trim()
@@ -347,7 +358,7 @@ function App() {
         const isMale = val === 'M' || val === 'MASCULINO' || val === 'HOMBRE' || val === 'H'
         const x = isMale ? 64 : 36
         const y = 776
-        page.drawText('X', { x, y, size: 10, font, color: rgb(0, 0, 0) })
+        page.drawText('X', { x, y, size: customSize, font, color: rgb(0, 0, 0) })
         continue
       }
       if (field.type === 'dateDigits') {
@@ -361,7 +372,7 @@ function App() {
           page.drawText(digits[i], {
             x: pos.x,
             y: field.y,
-            size: field.size,
+            size: customSize,
             font,
             color: rgb(0, 0, 0),
           })
@@ -373,15 +384,15 @@ function App() {
       const page = pages[field.page]
       if (!page) continue
       page.drawText(val, {
-        x: field.x,
+        x: xPos,
         y: field.y,
-        size: field.size,
+        size: customSize,
         font,
         color: rgb(0, 0, 0),
         maxWidth: field.w,
       })
     }
-  }, [getFieldValue, staticValues])
+  }, [getFieldValue, staticValues, fieldCustomizations])
 
   const generatePdf = useCallback(async () => {
     if (!excelData || selectedRow === null) return
@@ -729,7 +740,7 @@ function App() {
                 )}
 
                 {/* Mapeo editable */}
-                {rows.length > 0 && EXCEL_FIELDS.length > 0 && (
+                {rows.length > 0 && (
                   <div className="form-group">
                     <label className="label">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -747,32 +758,43 @@ function App() {
                             <th>Columna Excel</th>
                             <th>Valor personalizado (opcional)</th>
                             <th>Ejemplo</th>
+                            <th>Tamaño fuente</th>
+                            <th>
+                              <div>Posición horizontal</div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 400, color: 'var(--text-secondary)' }}>(+ derecha / - izquierda)</div>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {EXCEL_FIELDS.map(f => {
+                          {PDF_FIELDS.map(f => {
                             const sampleVal = selectedRow !== null && rows[selectedRow]
                               ? getFieldValue(f, rows[selectedRow])
                               : ''
+                            const custom = fieldCustomizations[f.key] || {}
+                            const isEditable = f.editable
                             return (
                               <tr key={f.key}>
                                 <td><strong>{f.label}</strong></td>
                                 <td>{f.page + 1}</td>
                                 <td>
-                                  <select
-                                    className="select-input"
-                                    style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', width: '100%' }}
-                                    value={fieldMapping[f.key] !== null && fieldMapping[f.key] !== undefined ? fieldMapping[f.key] : -1}
-                                    onChange={(e) => {
-                                      const idx = parseInt(e.target.value)
-                                      setFieldMapping(prev => ({ ...prev, [f.key]: idx }))
-                                    }}
-                                  >
-                                    <option value={-1}>-- Sin mapeo --</option>
-                                    {headers.map((h, i) => (
-                                      <option key={i} value={i}>{String(h || `Col. ${i + 1}`).trim()}</option>
-                                    ))}
-                                  </select>
+                                  {isEditable ? (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Manual</span>
+                                  ) : (
+                                    <select
+                                      className="select-input"
+                                      style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', width: '100%' }}
+                                      value={fieldMapping[f.key] !== null && fieldMapping[f.key] !== undefined ? fieldMapping[f.key] : -1}
+                                      onChange={(e) => {
+                                        const idx = parseInt(e.target.value)
+                                        setFieldMapping(prev => ({ ...prev, [f.key]: idx }))
+                                      }}
+                                    >
+                                      <option value={-1}>-- Sin mapeo --</option>
+                                      {headers.map((h, i) => (
+                                        <option key={i} value={i}>{String(h || `Col. ${i + 1}`).trim()}</option>
+                                      ))}
+                                    </select>
+                                  )}
                                 </td>
                                 <td>
                                   <input
@@ -781,11 +803,95 @@ function App() {
                                     style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', width: '100%' }}
                                     value={fieldOverrides[f.key] || ''}
                                     onChange={(e) => setFieldOverrides(prev => ({ ...prev, [f.key]: e.target.value }))}
-                                    placeholder="Dejar vacío para usar columna"
+                                    placeholder={isEditable ? 'Editar valor manual' : 'Dejar vacío para usar columna'}
                                   />
                                 </td>
                                 <td style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {sampleVal || '-'}
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input
+                                      type="number"
+                                      className="select-input"
+                                      style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', width: '60px' }}
+                                      value={custom.size || f.size || 12}
+                                      onChange={(e) => {
+                                        const newSize = parseInt(e.target.value) || f.size
+                                        setFieldCustomizations(prev => ({
+                                          ...prev,
+                                          [f.key]: { ...prev[f.key], size: newSize }
+                                        }))
+                                      }}
+                                      min="5"
+                                      max="30"
+                                    />
+                                    {(f.size !== undefined && custom.size !== undefined && custom.size !== f.size) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setFieldCustomizations(prev => ({
+                                          ...prev,
+                                          [f.key]: { ...prev[f.key], size: f.size }
+                                        }))}
+                                        style={{
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          padding: '2px',
+                                          color: 'var(--text-secondary)',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}
+                                        title="Restablecer tamaño"
+                                      >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                          <path d="M3 3v5h5"/>
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input
+                                      type="number"
+                                      className="select-input"
+                                      style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', width: '70px' }}
+                                      value={custom.xPos !== undefined ? custom.xPos : (f.x || 0)}
+                                      onChange={(e) => {
+                                        const newPos = parseInt(e.target.value) || 0
+                                        setFieldCustomizations(prev => ({
+                                          ...prev,
+                                          [f.key]: { ...prev[f.key], xPos: newPos }
+                                        }))
+                                      }}
+                                    />
+                                    {(f.x !== undefined && custom.xPos !== undefined && custom.xPos !== f.x) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setFieldCustomizations(prev => ({
+                                          ...prev,
+                                          [f.key]: { ...prev[f.key], xPos: f.x }
+                                        }))}
+                                        style={{
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          padding: '2px',
+                                          color: 'var(--text-secondary)',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}
+                                        title="Restablecer posición"
+                                      >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                          <path d="M3 3v5h5"/>
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             )
