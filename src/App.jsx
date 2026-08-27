@@ -140,7 +140,7 @@ const PDF_FIELDS = [
 
   // ===== PAGE 1 (Formulario principal) =====
   { key: 'nit', label: 'N° de NIT', page: 1, x: 30, y: 880, size: 12, w: 120, editable: true, default: 'N/A' },
-  { key: 'razonSocial', label: 'Razón Social Entidad Patrocinadora', page: 1, x: 212, y: 880, size: 11, w: 210, editable: true, default: 'N/A' },
+  { key: 'razonSocial', label: 'Razón Social Entidad Patrocinadora', page: 1, x: 206, y: 880, size: 10, w: 210, editable: true, default: 'N/A' },
   { key: 'numDocumento', label: 'N° de Documento de Identidad', page: 1, x: 230, y: 829, size: 13, w: 160, editable: false, col: 'CEDULA' },
   { key: 'fechaExpedicion', label: 'Fecha de Expedición', page: 1, type: 'dateDigits', y: 831, size: 11, editable: false, col: 'FECHA DE EXPEDICION_date',
     digitPositions: [
