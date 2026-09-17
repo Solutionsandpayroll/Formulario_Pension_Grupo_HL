@@ -179,7 +179,9 @@ const PDF_FIELDS = [
   { key: 'ciudad', label: 'Ciudad / Municipio', page: 1, x: 380, y: 654, size: 12, w: 140, editable: false, col: 'CIUDAD' },
   { key: 'departamento', label: 'Departamento', page: 1, x: 40, y: 625, size: 12, w: 120, editable: false, col: 'DEPARTAMENTO' },
   { key: 'telefono', label: 'Teléfono Celular', page: 1, x: 440, y: 625, size: 12, w: 130, editable: false, col: 'TELEFONO CELULAR' },
+  { key: 'telefonoFijo', label: 'N° de teléfono fijo', page: 1, x: 320, y: 625, size: 12, w: 130, editable: true, default: 'NO APLICA' },
   { key: 'email', label: 'Correo Electrónico', page: 1, x: 42, y: 597, size: 14, w: 280, editable: false, col: 'CORREO ELECTRONICO' },
+  { key: 'valorPrimerAporte', label: 'Valor primer Aporte', page: 1, x: 108, y: 483, size: 12, w: 160, editable: true, default: '5   0    0  0   0' },
   { key: 'numCuenta', label: 'Número de Cuenta', page: 1, x: 30, y: 319, size: 12, w: 160, editable: false, col: 'CTA. No.' },
   { key: 'nombreBanco', label: 'Nombre del Banco', page: 1, x: 210, y: 319, size: 12, w: 200, editable: false, col: 'BANCO' },
 
